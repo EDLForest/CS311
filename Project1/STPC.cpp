@@ -3,12 +3,6 @@
 #include <iostream>
 
 
-#ifdef WIN32
-    static const std::string path="C:\\temp\\coursein\\p1-in.txt";
-#else
-    static const std::string path="./test.txt";
-#endif
-
 using namespace std;
 
 int main (){
