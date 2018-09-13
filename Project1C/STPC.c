@@ -1,9 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "STPC.h"
-#include "time_functions.h"
 
 int main() {
+
+    #ifndef _WIN32
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <pwd.h>
+    #endif
+
+    #ifdef WIN32
+        const char inpath[]="C:\\temp\\coursein\\p1-in.txt";
+        const char outpath[]="C:\\temp\\courseout\\p1-out.txt";
+    #else
+    char inpath[200], outpath[200];
+             const char *homedir;
+             homedir = getenv("HOME");
+             if (homedir!= NULL)
+                    homedir = getpwuid(getuid())->pw_dir;
+             strcpy(inpath,homedir);
+             strcpy(outpath,homedir);
+             strcat(inpath,"/temp/coursein/p1-in.txt");
+             strcat(outpath, "/temp/courseout/p1-out.txt");
+
+    #endif
+
 
     printf("Using in path: %s\n", inpath);
     printf("Using out path: %s\n", outpath);
