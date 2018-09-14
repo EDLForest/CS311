@@ -27,6 +27,12 @@ a3b7954  on Aug 3
 *.userosscache
 *.sln.docstates
 
+
+*.sln
+*.vcxproj
+*.vcxproj.filters
+
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
