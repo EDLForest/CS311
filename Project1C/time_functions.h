@@ -4,23 +4,12 @@
 #define time_fns
 
 #if defined (WIN32) || defined (_WIN32)
-	#define ISWIN
-	#define HAVE_STRUCT_TIMESPEC
-	#include <windows.h>
+#define ISWIN
+#define HAVE_STRUCT_TIMESPEC
 #endif
 
 #include <sys/timeb.h>
 #include <time.h>
-#include <stdio.h>
-
-/*  following struct comes from windows.h
-typedef union _LARGE_INTEGER {
-	struct { DWORD LowPart; LONG HighPart; };
-	struct { DWORD LowPart; LONG HighPart; } u;
-	__int64 QuadPart;
-} LARGE_INTEGER, *PLARGE_INTEGER;
-*/
-
 struct timeb timestruct;
 // following interfaces are "exposed" for user access
 void start_timing();
@@ -30,62 +19,6 @@ double get_CPU_time_diff();
 long get_CPU_time();
 void get_wall_time_ints(int *secs, int *msecs); //similar to get_wall_clock, but modifies int parms
 void millisleep(int mils);
-void start_nanotime();
-int get_nanodiff();
-
-#ifdef ISWIN
-// freq must be used to convert the returned value from QPCounter to time units
-LARGE_INTEGER LI_freq, djstarting_count, djending_count, djcount_diff;
-void start_nanotime()
-{	// first get the frequency value. QuadPart is a 64 bit integer (on a 64-bit PC)
-	int rc;
-	rc = QueryPerformanceFrequency(&LI_freq); // returns non-zero on success
-	if (rc = 0)
-		printf("QPF failed. Results unreliable.");
-
-	// now get current COUNTER (clock-ticks, NOT nanosecs)
-
-	QueryPerformanceCounter(&djstarting_count);
-}
-int get_nanodiff()
-{
-	double diff;
-	
-	QueryPerformanceCounter(&djending_count);
-	// compute the count diff, then convert to nanosecs
-	djcount_diff.QuadPart = djending_count.QuadPart - djstarting_count.QuadPart;
-	diff = double(djcount_diff.QuadPart*10^6 / LI_freq.QuadPart);	// convert count to microseconds
-	return int(diff);
-}
-
-#else
-struct timespec djmyts_start,djmyts_end;
-void start_nanotime()
-{
-clock_gettime(CLOCK_THREAD_CPUTIME_ID, &djmyts_start);
-}
-
-int get_nanodiff()
-{
-	double start_time, end_time, diff; timespec result;
-	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &djmyts_end); // re-using the myts struct!!!
-	
-	if ((djmyts_end.tv_nsec - djmyts_start.tv_nsec) < 0)
-	{
-		result.tv_sec = djmyts_end.tv_sec - djmyts_start.tv_sec - 1;
-		result.tv_nsec = 10^9 + djmyts_end.tv_nsec - djmyts_start.tv_nsec;
-	}
-	else
-	{
-		result.tv_sec = djmyts_end.tv_sec - djmyts_start.tv_sec;
-		result.tv_nsec = djmyts_end.tv_nsec - djmyts_start.tv_nsec;
-	}
-	diff = result.tv_sec * 10 ^ 9 + result.tv_nsec; // add the seconds to the nanoseconds
-	// seconds should be zero for fast programs
-	return int(diff);
-}
-#endif
-
 
 
 // following interfaces "should be only" for internal use by above functions //(can't hide them in C, need to use C++ for that and
@@ -98,7 +31,7 @@ time_t cs350_timer__time1, cs350_timer__time2;
 unsigned short cs350_timer__millitm1, cs350_timer__millitm2;
 double cs350_timer__C1, cs350_timer__C2;  // for use by the clock fcn 
 double cs350_timer__CPU_start, cs350_timer__CPU_end; // for Linux "times" and wintime
-// ----------------------- common  ----------------------
+													 // ----------------------- common  ----------------------
 void start_timing()  // get start values for wallclock and CPU time
 {
 	get_wall_clock(&cs350_timer__time1, &cs350_timer__millitm1);
@@ -136,7 +69,7 @@ double get_wall_clock_diff()
 
 #ifndef ISWIN
 // -------------------------- LINUX ----------------------
-#include <sys/times.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 char filebase[] = "/root/coursedata/"; // The "coursedata" directory must be in home directory 
@@ -179,6 +112,19 @@ double get_CPU_time_diff()
 // ------------------- Windows -------------------
 #include <windows.h>
 
+char filebase[] = "c:\\temp\\coursedata\\";
+char folder212in[] = "212-in";
+char folder212out[] = "212-out";
+
+char os_in[] = "c:\\temp\\coursedata\\os-in\\"; // for 311, 350, 552
+char os_out[] = "c:\\temp\\coursedata\\fileio\\os-out\\";
+
+char folder338_in[] = "338-in";
+char folder338_out[] = "338-out";
+
+char folder360_in[] = "360-in";
+char folder360_out[] = "360-out";
+
 void millisleep(int mils)
 {
 	Sleep(mils);
@@ -206,8 +152,8 @@ long get_CPU_time()
 	/* ----------------- get all 4 times ----------- */
 	passed = GetProcessTimes(my_Phandle,
 		lpCreationTime, lpExitTime, lpKernelTime, lpUserTime);// all outputs are FILETIME structures
-   /* next line dies, so don't use it */
-   //passed=QueryProcessCycleTime(my_Phandle, __out pcycles1); // this call gets a "write to 0" failure
+															  /* next line dies, so don't use it */
+															  //passed=QueryProcessCycleTime(my_Phandle, __out pcycles1); // this call gets a "write to 0" failure
 	if (!passed) {/*cout<<"failed with code="<<GetLastError(); */return -1; }
 	// following 2 lines are for debugging
 	//cout<<"USER:highpart="<<UserTime.dwHighDateTime<<"   lowpart="<<UserTime.dwLowDateTime<<endl;
@@ -215,68 +161,53 @@ long get_CPU_time()
 
 	/* ----------------- now convert filetime to usable time ---------------------- */
 	/*	Type SYSTEMTIME:
-			  wYear As Integer
-			  wMonth As Integer
-			  wDayOfWeek As Integer
-			  wDay As Integer
-			  wHour As Integer
-			  wMinute As Integer
-			  wSecond As Integer
-			  wMilliseconds As Integer
-		End Type
-	  */
+	wYear As Integer
+	wMonth As Integer
+	wDayOfWeek As Integer
+	wDay As Integer
+	wHour As Integer
+	wMinute As Integer
+	wSecond As Integer
+	wMilliseconds As Integer
+	End Type
+	*/
 
-	  /*
-	  typedef struct _FILETIME
-	  {  DWORD dwLowDateTime;  DWORD dwHighDateTime;
-	  } FILETIME,  *PFILETIME;
+	/*
+	typedef struct _FILETIME
+	{  DWORD dwLowDateTime;  DWORD dwHighDateTime;
+	} FILETIME,  *PFILETIME;
 
-	  typedef union _LARGE_INTEGER
-	  {	struct
-			  {DWORD LowPart; LONG HighPart; };
-		  struct
-			  {DWORD LowPart; LONG HighPart; } u;
-		  LONGLONG QuadPart;
-	  } LARGE_INTEGER,  *PLARGE_INTEGER;
+	typedef union _LARGE_INTEGER
+	{	struct
+	{DWORD LowPart; LONG HighPart; };
+	struct
+	{DWORD LowPart; LONG HighPart; } u;
+	LONGLONG QuadPart;
+	} LARGE_INTEGER,  *PLARGE_INTEGER;
 
-	  */
-	  //SYSTEMTIME systime; SYSTEMTIME* lpsystime; // not currently used
-	  //ULARGE_INTEGER outtime;                     //not currently used
-	  //lpsystime= &systime;
-	  //FileTimeToSystemTime(lpKernelTime,lpsystime); /* now can do math on the parts */
-	  //cout<<systime.wMonth<<" "<<systime.wDay<<" "<<systime.wHour<<" "<<systime.wMinute<<" "<<systime.wSecond<<" "<<systime.wMilliseconds<<endl;;
+	*/
+	//SYSTEMTIME systime; SYSTEMTIME* lpsystime; // not currently used
+	//ULARGE_INTEGER outtime;                     //not currently used
+	//lpsystime= &systime;
+	//FileTimeToSystemTime(lpKernelTime,lpsystime); /* now can do math on the parts */
+	//cout<<systime.wMonth<<" "<<systime.wDay<<" "<<systime.wHour<<" "<<systime.wMinute<<" "<<systime.wSecond<<" "<<systime.wMilliseconds<<endl;;
 	return UserTime.dwLowDateTime;  // give back the milliseconds since process started.
-	/*It is not recommended that you add and subtract values from the SYSTEMTIME structure to
-	  obtain relative times. Instead, you should:
+									/*It is not recommended that you add and subtract values from the SYSTEMTIME structure to
+									obtain relative times. Instead, you should:
 
-			1. Convert the SYSTEMTIME structure to a FILETIME structure.
-			2. Copy the resulting FILETIME structure to a ULARGE_INTEGER structure.
-			3. Use normal 64-bit arithmetic on the ULARGE_INTEGER value.
-*/
+									1. Convert the SYSTEMTIME structure to a FILETIME structure.
+									2. Copy the resulting FILETIME structure to a ULARGE_INTEGER structure.
+									3. Use normal 64-bit arithmetic on the ULARGE_INTEGER value.
+									*/
 
-/*	It is not recommended that you add and subtract values from the FILETIME structure
-	to obtain relative times. Instead, you should:
-	1. copy the low- and high-order parts of the file time to a LARGE_INTEGER structure,
-	2. perform 64-bit arithmetic on the QuadPart member,
-	3. copy the LowPart and HighPart members into the FILETIME structure.
-*/
+									/*	It is not recommended that you add and subtract values from the FILETIME structure
+									to obtain relative times. Instead, you should:
+									1. copy the low- and high-order parts of the file time to a LARGE_INTEGER structure,
+									2. perform 64-bit arithmetic on the QuadPart member,
+									3. copy the LowPart and HighPart members into the FILETIME structure.
+									*/
 
 }
 #endif
 #endif
-
-/*  old definitions of files & paths, sved here for reference
-char filebase[] = "c:\\temp\\coursedata\\";
-char folder212in[] = "212-in";
-char folder212out[] = "212-out";
-
-char os_in[] = "c:\\temp\\coursedata\\os-in\\"; // for 311, 350, 552
-char os_out[] = "c:\\temp\\coursedata\\fileio\\os-out\\";
-
-char folder338_in[] = "338-in";
-char folder338_out[] = "338-out";
-
-char folder360_in[] = "360-in";
-char folder360_out[] = "360-out";
-*/
 

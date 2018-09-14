@@ -1,9 +1,3 @@
-#include <string.h>
-#include "time_functions.h"
-
-
-
-
 #ifndef STPC_H
 #define STPC_H
 

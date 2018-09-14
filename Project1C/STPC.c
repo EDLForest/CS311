@@ -1,6 +1,10 @@
+#include <sys/timeb.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "STPC.h"
+#include "time_functions.h"
+
 
 int main() {
 

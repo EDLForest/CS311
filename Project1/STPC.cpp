@@ -1,4 +1,3 @@
-
 #include "STPC.h"
 #include <iostream>
 
