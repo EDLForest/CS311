@@ -4,6 +4,13 @@
 #include <string.h>
 #include "PCWT.h"
 
+#ifndef _WIN32
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#endif
+
 using namespace std;
 /////////////////
 //Define Global Variable
@@ -50,14 +57,6 @@ int main (){
 ///////////////////////////////////////////
 ///////////////////////////////////////////
 
-
-    printf("Using in path: %s\n", inpath);
-    printf("Using out path: %s\n", outpath);
-    printf("Enter 0 to read file char by char.\n");
-    printf("Enter 1 to read file line by line.\n");
-
-    int userChoice;
-    scanf("%d", &userChoice);
 
     if (!userChoice) {
         fcopy_char(inpath, outpath);

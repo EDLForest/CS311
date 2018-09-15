@@ -50,7 +50,7 @@ void start_nanotime()
 int get_nanodiff()
 {
 	double diff;
-	
+
 	QueryPerformanceCounter(&djending_count);
 	// compute the count diff, then convert to nanosecs
 	djcount_diff.QuadPart = djending_count.QuadPart - djstarting_count.QuadPart;
@@ -69,7 +69,7 @@ int get_nanodiff()
 {
 	double start_time, end_time, diff; timespec result;
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &djmyts_end); // re-using the myts struct!!!
-	
+
 	if ((djmyts_end.tv_nsec - djmyts_start.tv_nsec) < 0)
 	{
 		result.tv_sec = djmyts_end.tv_sec - djmyts_start.tv_sec - 1;
@@ -96,7 +96,7 @@ void get_wall_clock(time_t *secs, unsigned short *mils);
 
 time_t cs350_timer__time1, cs350_timer__time2;
 unsigned short cs350_timer__millitm1, cs350_timer__millitm2;
-double cs350_timer__C1, cs350_timer__C2;  // for use by the clock fcn 
+double cs350_timer__C1, cs350_timer__C2;  // for use by the clock fcn
 double cs350_timer__CPU_start, cs350_timer__CPU_end; // for Linux "times" and wintime
 // ----------------------- common  ----------------------
 void start_timing()  // get start values for wallclock and CPU time
@@ -139,7 +139,7 @@ double get_wall_clock_diff()
 #include <sys/times.h>
 #include <unistd.h>
 
-char filebase[] = "/root/coursedata/"; // The "coursedata" directory must be in home directory 
+char filebase[] = "/root/coursedata/"; // The "coursedata" directory must be in home directory
 char os_in[] = "/root/coursedata/os-in/"; // for 311, 350, 552
 char os_out[] = "/fileio/os-out/";
 
@@ -279,4 +279,3 @@ char folder338_out[] = "338-out";
 char folder360_in[] = "360-in";
 char folder360_out[] = "360-out";
 */
-
