@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
+#include <string>
 #include "STPC.h"
 #include "time_functions.h"
 
@@ -16,14 +17,13 @@
 
 using namespace std;
 
-
 //define the input and output file streams
     ifstream infile;
     ofstream outfile;
 
 int main(int argc, char **argv) {
 
-    if(argc != 1)
+    if(argc != 2)
         exit(99);
 
 #ifdef WIN32
@@ -43,14 +43,15 @@ int main(int argc, char **argv) {
 #endif
 
 
-	printf("Using in path: %s\n", inpath);
-	printf("Using out path: %s\n", outpath);
-	printf("Enter 0 to read file char by char.\n");
-	printf("Enter 1 to read file line by line.\n");
+	//printf("Using in path: %s\n", inpath);
+	//printf("Using out path: %s\n", outpath);
+	//printf("Enter 0 to read file char by char.\n");
+	//printf("Enter 1 to read file line by line.\n");
 
-	int userChoice;
-	scanf("%d", &userChoice);
+	//int userChoice;
+	//scanf("%d", &userChoice);
 
+	int userChoice = atoi(argv[1]);
 	if (!userChoice) {
 		fcopy_char(inpath, outpath);
 	}
@@ -58,12 +59,14 @@ int main(int argc, char **argv) {
 		fcopy_line(inpath, outpath);
 	}
 
+	int pause;
+	cin >> pause;
 	return 0;
 }
 
 
 void fcopy_char(const char *inpath, const char *outpath) {
-    cout << "you have choose to read char by char" << std::endl;
+    cout << "you have choose to read char by char" << endl;
 
     infile.open(inpath);
     outfile.open(outpath);
@@ -91,7 +94,7 @@ void fcopy_char(const char *inpath, const char *outpath) {
 }
 
 void fcopy_line(const char *inpath, const char *outpath) {
-    cout << "you have choose to read line by line" << std::endl;
+    cout << "you have choose to read line by line" << endl;
 
     infile.open(inpath);
     outfile.open(outpath);
@@ -112,7 +115,7 @@ void fcopy_line(const char *inpath, const char *outpath) {
     stop_timing();
 
 
-    printf("nano time diff is: %f\n nanoseconds", get_nanodiff() / 1000.0);
+    printf("nano time diff is: %f nanoseconds\n", get_nanodiff() / 1000.0);
     printf("Wall clock time is: %f\n", get_wall_clock_diff() / 1000.0);
 
     infile.close();
