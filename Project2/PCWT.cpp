@@ -28,7 +28,9 @@ using namespace std;
     //define the thread pool(?)
     pthread_t threads[2];
 
-int main (){
+int main (int argc, char **argv){
+
+	if (argc != 2) exit(99);
 
 ///////////////////////////////////////////
 ////////////DEFINING PATHS/////////////////
@@ -36,8 +38,6 @@ int main (){
     #ifdef WIN32
         const char inpath[]="C:\\temp\\coursein\\p2-in.txt";
         const char outpath[]="C:\\fileio\\p2-out.txt";
-        inpath[sizeof(inpath) - 1] = '0';
-    	outpath[sizeof(outpath) - 1] = '0';
     #else
         char inpath[200], outpath[200];
         const char *homedir;
@@ -57,7 +57,7 @@ int main (){
 ///////////////////////////////////////////
 ///////////////////////////////////////////
 
-
+	int userChoice = atoi(argv[1]);
     if (!userChoice) {
         fcopy_char(inpath, outpath);
     } else {
@@ -90,7 +90,7 @@ void *readChar(void*inpath){
 //     outfile = fopen(outpath, "w");
 // }
 
-void fcopy_char(char *inpath, const char *outpath){
+void fcopy_char(const char *inpath, const char *outpath){
     cout << "you have choose to read char by char" << std::endl;
     readChar(inpath);
     int rc;

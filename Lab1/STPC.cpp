@@ -58,6 +58,8 @@ int main(int argc, char **argv) {
 	else {
 		fcopy_line(inpath, outpath);
 	}
+
+	system("pause");
 	return 0;
 }
 
@@ -116,26 +118,5 @@ void fcopy_line(const char *inpath, const char *outpath) {
 
     infile.close();
     outfile.close();
-	// infile = fopen(inpath, "r");
-	// outfile = fopen(outpath, "w");
-    //
-	// start_nanotime();
-	// if (infile == NULL) {
-	// 	printf("The input file does not exist\n");
-	// 	exit(1);
-	// }
-	// else if (outfile == NULL) {
-	// 	printf("The output file does not exist\n");
-	// 	exit(1);
-	// }
-	// else {
-	// 	char buf[255];
-	// 	while ((fgets(buf, 254, infile)) != NULL) {
-	// 		if (!fputs(buf, outfile)) {
-	// 			printf("Writting to the file has failed for some reason.\n");
-	// 			exit(1);
-	// 		}
-	// 	}
-    //
-	// }
+	
 }
