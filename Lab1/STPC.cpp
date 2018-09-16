@@ -58,9 +58,6 @@ int main(int argc, char **argv) {
 	else {
 		fcopy_line(inpath, outpath);
 	}
-
-	int pause;
-	cin >> pause;
 	return 0;
 }
 
@@ -71,23 +68,22 @@ void fcopy_char(const char *inpath, const char *outpath) {
     infile.open(inpath);
     outfile.open(outpath);
     //read the file char by char
+    start_timing();
     start_nanotime();
-    if (infile){
+    if (infile && outfile){
         char c;
         while(infile.get(c)){
-            if(outfile)
-                outfile << c;
-            else
-                exit(3);
+            outfile << c;
         }
 
     }
-    cout << endl;
+    else{
+        exit(1);
+    }
     stop_timing();
 
-	printf("nano time diff is: %f nano seconds\n", get_nanodiff() / 1000.0);
-	printf("wallclock time is: %f\n", get_wall_clock_diff() / 1000.0);
-
+    printf("CPU Time diff is: %f ms\n", get_nanodiff() / 1000000.0);
+    printf("Wall clock time is: %f ms\n", get_wall_clock_diff() * 1000.0);
 
 	infile.close();
     outfile.close();
@@ -101,22 +97,22 @@ void fcopy_line(const char *inpath, const char *outpath) {
     //read the file line by line
 
     start_nanotime();
-    if (infile){
+    start_timing();
+    if (infile && outfile){
         for (string line; getline(infile, line); ) {
-            if(outfile)
-                outfile << line << endl;
-            else
-                exit(3);
-
-            if(infile.peek() == EOF) break;
+            outfile << line << endl;
+            //if(infile.peek() == EOF) break;
         }
+    }
+    else{
+        exit(1);
     }
 
     stop_timing();
 
 
-    printf("nano time diff is: %f nanoseconds\n", get_nanodiff() / 1000.0);
-    printf("Wall clock time is: %f\n", get_wall_clock_diff() / 1000.0);
+    printf("CPU Time diff is: %f ms\n", get_nanodiff() / 1000000.0);
+    printf("Wall clock time is: %f ms\n", get_wall_clock_diff() * 1000.0);
 
     infile.close();
     outfile.close();
