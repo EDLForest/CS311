@@ -59,7 +59,6 @@ int main(int argc, char **argv) {
 		fcopy_line(inpath, outpath);
 	}
 
-	system("pause");
 	return 0;
 }
 
@@ -118,5 +117,5 @@ void fcopy_line(const char *inpath, const char *outpath) {
 
     infile.close();
     outfile.close();
-	
+
 }
