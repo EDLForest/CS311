@@ -1,24 +1,23 @@
-#include <pthread.h>
-#include <semaphore.h>
 #include <iostream>
 #include <fstream>
-#include <string.h>
+#include <string>
 #include "PCWT.h"
 #include "time_functions.h"
+#include "sched.h"
+#include "pthread.h"
+#include "semaphore.h"
+
 
 #ifndef _WIN32
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <pwd.h>
+	#include <unistd.h>
+	#include <sys/types.h>
+	#include <sys/stat.h>
+	#include <pwd.h>
 #endif
 
-using namespace std;
+	using namespace std;
 
-    //////////Defining function protoype/////////////
-    void *readLine(void * arg);
-    void *writeLine(void * arg);
-    /////////////Define Global Variable//////////////
+    /////////////DEFINE GLOBAL VARIABLES//////////////
 
     //define an array of 10 char pointers
     //and the read write position
@@ -30,10 +29,10 @@ using namespace std;
     ifstream infile;
     ofstream outfile;
 
-    //define the thread pool(?)
+    //define the thread pool
     pthread_t threads[2];
 
-    //Define the semaphore
+    //Define the semaphores
     sem_t sem_empty;
     sem_t sem_fill;
     sem_t sem_crit;
@@ -43,8 +42,8 @@ int main (){
 ////////////DEFINING PATHS/////////////////
 
     #ifdef WIN32
-        const char inpath[]="C:\\temp\\coursein\\p2-in.txt";
-        const char outpath[]="C:\\fileio\\p2-out.txt";
+        const char inpath[]="C:\\temps\\coursein\\p2-in.txt";
+        const char outpath[]="C:\\temps\\courseout\\p2-out.txt";
     #else
         char inpath[200], outpath[200];
         const char *homedir;
@@ -72,7 +71,7 @@ int main (){
     outfile.open(outpath);
 
     //start the timings
-    start_nanotime();
+    //start_nanotime();
     start_timing();
 
     if(pthread_create(&threads[0], NULL, readLine, &infile)){
@@ -88,13 +87,19 @@ int main (){
     pthread_join( threads[1], NULL);
 
     //when both threads are finished, stop timing
+	//stop_nanotime();
     stop_timing();
 
-    printf("CPU Time diff is: %f ms\n", get_nanodiff() / 1000.0);
-    printf("Wall clock time is: %f ms\n", get_wall_clock_diff() * 1000.0);
+    printf("CPU Time diff is: %f ms\n", get_nanodiff() / 1000000.0);
+    printf("Wall clock time is: %f ms\n", get_wall_clock_diff()*1000);
     sem_destroy(&sem_empty);
     sem_destroy(&sem_fill);
     sem_destroy(&sem_crit);
+
+	infile.close();
+	outfile.close();
+
+	system("pause");
     return 0;
 }
 
@@ -135,7 +140,6 @@ void *readLine(void * arg){
         cout << "Error: input file stream is not opened" << endl;
         exit(1);
     }
-    infile->close();
     pthread_exit(NULL);
 }
 
@@ -161,6 +165,5 @@ void *writeLine (void *arg){
         cout << "Error: output file stream is not opened" << endl;
         exit(1);
     }
-    outfile->close();
     pthread_exit(NULL);
 }

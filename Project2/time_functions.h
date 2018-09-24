@@ -4,9 +4,9 @@
 #define time_fns
 
 #if defined (WIN32) || defined (_WIN32)
-	#define ISWIN
-	#define HAVE_STRUCT_TIMESPEC
-	#include <windows.h>
+#define ISWIN
+#define HAVE_STRUCT_TIMESPEC
+#include <windows.h>
 #endif
 
 #include <sys/timeb.h>
@@ -21,94 +21,38 @@ typedef union _LARGE_INTEGER {
 } LARGE_INTEGER, *PLARGE_INTEGER;
 */
 
+// following data needed for both Linux & windows
+int djended;
 struct timeb timestruct;
+time_t wall_time_1, wall_time_2;
+unsigned short cs350_timer__millitm1, cs350_timer__millitm2;
+double cs350_timer__C1, cs350_timer__C2;  // for use by the clock fcn 
+double cs350_timer__CPU_start, cs350_timer__CPU_diff; // for Linux "times" and wintime
+
 // following interfaces are "exposed" for user access
-void start_timing();
-void stop_timing();
+void start_timing();  	// starts cpu and wall clock timers
+void stop_timing();		// stops cpu and wall clock timers
 double get_wall_clock_diff();
-double get_CPU_time_diff();
+//double get_CPU_time_diff();
 long get_CPU_time();
 void get_wall_time_ints(int *secs, int *msecs); //similar to get_wall_clock, but modifies int parms
 void millisleep(int mils);
 void start_nanotime();
+void stop_nanotime();
 int get_nanodiff();
-
-#ifdef ISWIN
-// freq must be used to convert the returned value from QPCounter to time units
-LARGE_INTEGER LI_freq, djstarting_count, djending_count, djcount_diff;
-void start_nanotime()
-{	// first get the frequency value. QuadPart is a 64 bit integer (on a 64-bit PC)
-	int rc;
-	rc = QueryPerformanceFrequency(&LI_freq); // returns non-zero on success
-	if (rc = 0)
-		printf("QPF failed. Results unreliable.");
-
-	// now get current COUNTER (clock-ticks, NOT nanosecs)
-
-	QueryPerformanceCounter(&djstarting_count);
-}
-int get_nanodiff()
-{
-	double diff;
-	
-	QueryPerformanceCounter(&djending_count);
-	// compute the count diff, then convert to nanosecs
-	djcount_diff.QuadPart = djending_count.QuadPart - djstarting_count.QuadPart;
-	diff = double(djcount_diff.QuadPart*10^6 / LI_freq.QuadPart);	// convert count to microseconds
-	return int(diff);
-}
-
-#else
-struct timespec djmyts_start,djmyts_end;
-void start_nanotime()
-{
-clock_gettime(CLOCK_THREAD_CPUTIME_ID, &djmyts_start);
-}
-
-int get_nanodiff()
-{
-	double start_time, end_time, diff; timespec result;
-	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &djmyts_end); // re-using the myts struct!!!
-	
-	if ((djmyts_end.tv_nsec - djmyts_start.tv_nsec) < 0)
-	{
-		result.tv_sec = djmyts_end.tv_sec - djmyts_start.tv_sec - 1;
-		result.tv_nsec = 10^9 + djmyts_end.tv_nsec - djmyts_start.tv_nsec;
-	}
-	else
-	{
-		result.tv_sec = djmyts_end.tv_sec - djmyts_start.tv_sec;
-		result.tv_nsec = djmyts_end.tv_nsec - djmyts_start.tv_nsec;
-	}
-	diff = result.tv_sec * 10 ^ 9 + result.tv_nsec; // add the seconds to the nanoseconds
-	// seconds should be zero for fast programs
-	return int(diff);
-}
-#endif
-
-
-
-// following interfaces "should be only" for internal use by above functions //(can't hide them in C, need to use C++ for that and
-// don't want to use C++ because most users will not be using C++)
 void get_wall_clock(time_t *secs, unsigned short *mils);
 
-// following variables are "private" to the functions in this header file
-
-time_t cs350_timer__time1, cs350_timer__time2;
-unsigned short cs350_timer__millitm1, cs350_timer__millitm2;
-double cs350_timer__C1, cs350_timer__C2;  // for use by the clock fcn 
-double cs350_timer__CPU_start, cs350_timer__CPU_end; // for Linux "times" and wintime
 // ----------------------- common  ----------------------
 void start_timing()  // get start values for wallclock and CPU time
 {
-	get_wall_clock(&cs350_timer__time1, &cs350_timer__millitm1);
-	cs350_timer__CPU_start = get_CPU_time();
+	get_wall_clock(&wall_time_1, &cs350_timer__millitm1);
+	start_nanotime();
 }
 
 void stop_timing()	 // get final values for wallclock and CPU time
 {
-	get_wall_clock(&cs350_timer__time2, &cs350_timer__millitm2);
-	cs350_timer__CPU_end = get_CPU_time();
+	get_wall_clock(&wall_time_2, &cs350_timer__millitm2);
+	cs350_timer__CPU_diff = get_nanodiff();
 }
 
 void get_wall_clock(time_t *secs, unsigned short *mils)
@@ -128,11 +72,89 @@ void get_wall_time_ints(int *secs, int *msecs)
 double get_wall_clock_diff()
 {// same for Windows and Linux (uses ftime)
 	double fnlt1, fnlt2, realfnl;
-	fnlt1 = (double)cs350_timer__time1 + (double)cs350_timer__millitm1 / 1000;
-	fnlt2 = (double)cs350_timer__time2 + (double)cs350_timer__millitm2 / 1000;
+	fnlt1 = (double)wall_time_1 + (double)cs350_timer__millitm1 / 1000;
+	fnlt2 = (double)wall_time_2 + (double)cs350_timer__millitm2 / 1000;
 	realfnl = (fnlt2 - fnlt1); // following values are correctly displayed
 	return realfnl;
 }
+
+#ifdef ISWIN
+// freq must be used to convert the returned value from QPCounter to time units
+LARGE_INTEGER LI_freq, djstarting_count, djending_count, djcount_diff;
+void start_nanotime()
+{	// first get the frequency value. QuadPart is a 64 bit integer (on a 64-bit PC)
+	int rc;
+	djended = 0;
+	rc = QueryPerformanceFrequency(&LI_freq); // returns non-zero on success
+	if (rc = 0)
+		printf("QPF failed. Results unreliable.");
+	// now get current COUNTER (clock-ticks, NOT nanosecs)
+	QueryPerformanceCounter(&djstarting_count);
+}
+void stop_nanotime()
+{
+	QueryPerformanceCounter(&djending_count);
+	djended = 1;
+}
+int get_nanodiff()
+{
+	double diff;
+	if (djended == 0)	// compatibility with proj 1 Fall 2018
+		QueryPerformanceCounter(&djending_count);
+	djended = 0;
+	// compute the count diff, then convert to nanosecs
+	djcount_diff.QuadPart = djending_count.QuadPart - djstarting_count.QuadPart;
+	diff = (double)(djcount_diff.QuadPart * 10 ^ 6 / LI_freq.QuadPart);	// convert count to microseconds
+	return (int)(diff);
+}
+
+#else
+// for Linux
+struct timespec djmyts_start, djmyts_end;
+void start_nanotime()
+{
+	djended = 0;
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &djmyts_start);
+}
+
+void stop_nanotime()
+{
+	djended = 1;	// compatibility with proj 1 Fall 2018
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &djmyts_end); // re-using the myts struct!!!
+}
+
+int get_nanodiff()
+{
+	double diff; timespec result;
+	if (djended == 0)	// compatibility with proj 1 Fall 2018
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &djmyts_end); // re-using the myts struct!!!
+	djended = 0; // reset for next time
+	if ((djmyts_end.tv_nsec - djmyts_start.tv_nsec) < 0)
+	{
+		result.tv_sec = djmyts_end.tv_sec - djmyts_start.tv_sec - 1;
+		result.tv_nsec = 10 ^ 9 + djmyts_end.tv_nsec - djmyts_start.tv_nsec;
+	}
+	else
+	{
+		result.tv_sec = djmyts_end.tv_sec - djmyts_start.tv_sec;
+		result.tv_nsec = djmyts_end.tv_nsec - djmyts_start.tv_nsec;
+	}
+	diff = result.tv_sec * 10 ^ 9 + result.tv_nsec; // add the seconds to the nanoseconds
+	// seconds should be zero for fast programs
+	return int(diff);
+}
+#endif
+
+
+
+// following interfaces "should be only" for internal use by above functions //(can't hide them in C, need to use C++ for that and
+// don't want to use C++ because most users will not be using C++)
+
+
+// following variables are "private" to the functions in this header file
+
+
+
 
 #ifndef ISWIN
 // -------------------------- LINUX ----------------------
@@ -171,9 +193,10 @@ double get_CPU_time_diff()
 // CPU time for Linux
 {
 	double diff;
-	diff = (cs350_timer__CPU_end - cs350_timer__CPU_start);
+	//diff = (cs350_timer__CPU_end - cs350_timer__CPU_start);
 	//printf("Linux cputime diff=%10.3f, diff/1k=%10.3f \n",diff, diff/1000);
-	return diff / 1000;
+	//return diff / 1000;
+	return cs350_timer_CPU_diff; // previously computed in "get_nanodiff"
 }
 #else
 // ------------------- Windows -------------------
@@ -183,6 +206,7 @@ void millisleep(int mils)
 {
 	Sleep(mils);
 }
+#ifdef oldway
 double get_CPU_time_diff()
 {//CPU time for Windows
 	long TENMEG = 10000000;
@@ -264,6 +288,7 @@ long get_CPU_time()
 }
 #endif
 #endif
+#endif
 
 /*  old definitions of files & paths, sved here for reference
 char filebase[] = "c:\\temp\\coursedata\\";
@@ -279,4 +304,3 @@ char folder338_out[] = "338-out";
 char folder360_in[] = "360-in";
 char folder360_out[] = "360-out";
 */
-
