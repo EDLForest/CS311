@@ -1,169 +1,176 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <iomanip>
 #include "PCWT.h"
 #include "time_functions.h"
 #include "sched.h"
 #include "pthread.h"
 #include "semaphore.h"
+#include "setpath_defs.h"
 
 
-#ifndef _WIN32
-	#include <unistd.h>
-	#include <sys/types.h>
-	#include <sys/stat.h>
-	#include <pwd.h>
-#endif
+//#ifndef _WIN32
+//	#include <unistd.h>
+//	#include <sys/types.h>
+//	#include <sys/stat.h>
+//	#include <pwd.h>
+//#endif
 
-	using namespace std;
+using namespace std;
 
-    /////////////DEFINE GLOBAL VARIABLES//////////////
+/////////////DEFINE GLOBAL VARIABLES//////////////
 
-    //define an array of 10 char pointers
-    //and the read write position
-    string buffer[BUF_SIZE];
-    int readPos = 0;
-    int writePos = 0;
+//define an array of 10 char pointers
+//and the read write position
+string buffer[BUF_SIZE];
+int readPos = 0;
+int writePos = 0;
 
-    //define the input and output file streams
-    ifstream infile;
-    ofstream outfile;
+//define the input and output file streams
+ifstream in_file;
+ofstream out_file;
 
-    //define the thread pool
-    pthread_t threads[2];
+//define the thread pool
+pthread_t threads[2];
 
-    //Define the semaphores
-    sem_t sem_empty;
-    sem_t sem_fill;
-    sem_t sem_crit;
+//Define the semaphores
+sem_t sem_empty;
+sem_t sem_fill;
+sem_t sem_crit;
 
-int main (){
+int main() {
 
-////////////DEFINING PATHS/////////////////
+	////////////DEFINING PATHS/////////////////
+	setpath();
 
-    #ifdef WIN32
-        const char inpath[]="C:\\temps\\coursein\\p2-in.txt";
-        const char outpath[]="C:\\temps\\courseout\\p2-out.txt";
-    #else
-        char inpath[200], outpath[200];
-        const char *homedir;
-        homedir = getenv("HOME");
+	///////////Starting the threads////////////
+	sem_init(&sem_empty, 0, BUF_SIZE);
+	sem_init(&sem_fill, 0, 0);
+	sem_init(&sem_crit, 0, 1);
 
-        if (homedir!= NULL)
-            homedir = getpwuid(getuid())->pw_dir;
+	in_file.open(in_path);
+	out_file.open(out_path);
 
-        strcpy(inpath,homedir);
-        strcpy(outpath,homedir);
-        strcat(inpath,"/temp/coursein/p2-in.txt");
-        strcat(outpath, "/temp/courseout/p2-out.txt");
+	//start the timings
+	//start_nanotime();
+	start_timing();
 
-        inpath[sizeof(inpath) - 1] = '0';
-        outpath[sizeof(outpath) - 1] = '0';
-    #endif
+	if (pthread_create(&threads[0], NULL, readLine, &in_file)) {
+		cout << "Error: unable to create producer thread," << endl;
+	}
 
-///////////Starting the threads////////////
-
-    sem_init(&sem_empty, 0, BUF_SIZE);
-    sem_init(&sem_fill, 0, 0);
-    sem_init(&sem_crit, 0, 1);
-
-    infile.open(inpath);
-    outfile.open(outpath);
-
-    //start the timings
-    //start_nanotime();
-    start_timing();
-
-    if(pthread_create(&threads[0], NULL, readLine, &infile)){
-        cout << "Error: unable to create producer thread," << endl;
-    }
-
-    if(pthread_create(&threads[1], NULL, writeLine, &outfile)){
-        cout << "Error: unable to create consumer thread." << endl;
-    }
+	if (pthread_create(&threads[1], NULL, writeLine, &out_file)) {
+		cout << "Error: unable to create consumer thread." << endl;
+	}
 
 
-    pthread_join( threads[0], NULL);
-    pthread_join( threads[1], NULL);
+	pthread_join(threads[0], NULL);
+	pthread_join(threads[1], NULL);
 
-    //when both threads are finished, stop timing
+	//when both threads are finished, stop timing
 	//stop_nanotime();
-    stop_timing();
+	stop_timing();
 
-    printf("CPU Time diff is: %f ms\n", get_nanodiff() / 1000000.0);
-    printf("Wall clock time is: %f ms\n", get_wall_clock_diff()*1000);
-    sem_destroy(&sem_empty);
-    sem_destroy(&sem_fill);
-    sem_destroy(&sem_crit);
+	printf("CPU Time diff is: %f ms\n", get_nanodiff() / 1000000.0);
+	printf("Wall clock time is: %f ms\n", get_wall_clock_diff() * 1000);
+	sem_destroy(&sem_empty);
+	sem_destroy(&sem_fill);
+	sem_destroy(&sem_crit);
 
-	infile.close();
-	outfile.close();
+	in_file.close();
+	out_file.close();
 
 	system("pause");
-    return 0;
+	return 0;
 }
 
 //tasks to be submitted to the thread
-void *readLine(void * arg){
+void *readLine(void * arg) {
 
-    ifstream *infile = (ifstream*) arg;
+	ifstream *in_file = (ifstream*)arg;
 
-    //read the file char by char
-    if (infile){
-        for (string line; getline(*infile, line); ) {
-            //TODO: getline() need to be after sem_wait(&sem_empty)
+	//read the file line by line
+	if (in_file) {
 
-            //decrement sem_empty, when sem_empty is zero, sem_wait will wait
-            //until sem_empty is nonzero
-            sem_wait(&sem_empty);
-            sem_wait(&sem_crit); //Obtain critical section lock
-                buffer[writePos] = line;
-                writePos = (writePos+1) % 10;
-            sem_post(&sem_crit); //release critical section lock
-            sem_post(&sem_fill); //increment sem_fill for consumer to read
+		//set an one-time use flag to allow producer thread to read 
+		//one buffer slot without posting to sem_fill
+		//this should ensure that comsumer thread will always
+		//be one more slot behind the producer thread.
+		//This way the consumer thread can peek ahead to see if the 
+		//next buffer slot holds a special character
+		bool lookahead = true;	
 
-            //if at the end of the file, break out of loop
-            //if(infile->peek() == EOF) break;
-        }
-        //Add the special character string to the buffer
-        sem_wait(&sem_empty);
-        sem_wait(&sem_crit);
-            buffer[writePos] = "!@#$^&*()_+";
-            //cout << buffer[writePos];
-            writePos = (writePos+1) % 10;
-        sem_post(&sem_crit);
-        sem_post(&sem_fill);
-        // cout << endl;
+		while (1) {
+			string line;
+			//decrement sem_empty, when sem_empty is zero, sem_wait will wait
+			//until sem_empty is positive
+			sem_wait(&sem_empty);
 
-    }
-    else{
-        cout << "Error: input file stream is not opened" << endl;
-        exit(1);
-    }
-    pthread_exit(NULL);
+			getline(*in_file, line);
+			sem_wait(&sem_crit); //Obtain critical section lock
+				buffer[writePos] = line;
+				writePos = (writePos + 1) % BUF_SIZE;
+			sem_post(&sem_crit); //release critical section lock
+			if (lookahead) lookahead = false;
+			else sem_post(&sem_fill); //increment sem_fill for consumer to read
+
+			if (in_file->eof()) {	//if the eof is reached, then write the special chars to the buffer
+				cout << "eof detected" << endl;
+				sem_wait(&sem_empty);
+				sem_wait(&sem_crit); //Obtain critical section lock
+					buffer[writePos] = "!@#$^&*()_+";
+					writePos = (writePos + 1) % BUF_SIZE;
+				sem_post(&sem_crit); //release critical section lock
+				sem_post(&sem_fill);
+				break;
+			}
+
+			//if at the end of the file, break out of loop
+			//if(in_file->peek() == EOF) break;
+		}
+		// cout << endl;
+
+	}
+	else {
+		cout << "Error: input file stream is not opened" << endl;
+		exit(1);
+	}
+	pthread_exit(NULL);
+	return NULL;
 }
 
-void *writeLine (void *arg){
+void *writeLine(void *arg) {
 
-    ofstream *outfile = (ofstream*) arg;
+	ofstream *out_file = (ofstream*)arg;
 
-    if(outfile){
-        //wait for semaphore for filled buffer, consumer
-        //will wait if the buffer is empty
-        while(1){
-            sem_wait(&sem_fill);
-            sem_wait(&sem_crit); //Obtain critical section lock
-                // (*outfile) << buffer[readPos] << endl;
-                if(buffer[readPos] == "!@#$^&*()_+") break;
-                (*outfile) << buffer[readPos] << endl;
-                readPos = (readPos+1) % 10;
-            sem_post(&sem_crit); //Release critical section lock
-            sem_post(&sem_empty); //inc # of open slot for producer to write
-        }
-    }
-    else {
-        cout << "Error: output file stream is not opened" << endl;
-        exit(1);
-    }
-    pthread_exit(NULL);
+	if (out_file) {
+		//wait for semaphore for filled buffer, consumer
+		//will wait if the buffer is empty
+		while (1) {
+			sem_wait(&sem_fill);
+			sem_wait(&sem_crit); //Obtain critical section lock
+			if (buffer[readPos] == "!@#$^&*()_+") {
+				break;
+			}
+			else if (buffer[(readPos + 1) % BUF_SIZE] == "!@#$^&*()_+") {
+				(*out_file) << buffer[readPos];
+				break;
+			}
+			else {
+				(*out_file) << buffer[readPos] << endl;
+			}
+			readPos = (readPos + 1) % BUF_SIZE;
+			sem_post(&sem_crit); //Release critical section lock
+			sem_post(&sem_empty); //inc # of open slot for producer to write
+		}
+	}
+	else {
+		cout << "Error: output file stream is not opened" << endl;
+		exit(1);
+	}
+	pthread_exit(NULL);
+	return NULL;
 }
+
+#include "setpath_fn.h"
