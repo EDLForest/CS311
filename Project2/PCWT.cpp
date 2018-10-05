@@ -116,7 +116,7 @@ void *readLine(void * arg) {
 		else sem_post(&sem_fill); //increment sem_fill for consumer to read
 
 		if (in_file->eof()) {	//if the eof is reached, then write the special chars to the buffer
-			cout << "eof detected" << endl;
+			//cout << "eof detected" << endl;
 			sem_wait(&sem_empty);
 			sem_wait(&sem_crit); //Obtain critical section lock
 				buffer[writePos] = "!@#$^&*()_+";
