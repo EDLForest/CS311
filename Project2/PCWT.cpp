@@ -4,18 +4,12 @@
 #include <iomanip>
 #include "PCWT.h"
 #include "time_functions.h"
-#include "sched.h"
+#include "string.h"
+
 #include "pthread.h"
 #include "semaphore.h"
 #include "setpath_defs.h"
 
-
-//#ifndef _WIN32
-//	#include <unistd.h>
-//	#include <sys/types.h>
-//	#include <sys/stat.h>
-//	#include <pwd.h>
-//#endif
 
 using namespace std;
 
@@ -30,6 +24,7 @@ int writePos = 0;
 //define the input and output file streams
 ifstream in_file;
 ofstream out_file;
+
 
 //define the thread pool
 pthread_t threads[2];
@@ -49,8 +44,18 @@ int main() {
 	sem_init(&sem_fill, 0, 0);
 	sem_init(&sem_crit, 0, 1);
 
+	cout << "using input path: " << in_path << endl;
+	cout << "using output path: " << out_path << endl;
+
+
 	in_file.open(in_path);
 	out_file.open(out_path);
+
+
+	if(!in_file.is_open() || !out_file.is_open()){
+		cout << "in_file or out_file is not open" << endl;
+		exit(1);
+	}
 
 	//start the timings
 	//start_nanotime();
@@ -81,60 +86,45 @@ int main() {
 	in_file.close();
 	out_file.close();
 
-	system("pause");
+	//system("pause");
 	return 0;
 }
 
 //tasks to be submitted to the thread
 void *readLine(void * arg) {
-
 	ifstream *in_file = (ifstream*)arg;
+	//set an one-time use flag to allow producer thread to read
+	//one buffer slot without posting to sem_fill
+	//this should ensure that comsumer thread will always
+	//be one more slot behind the producer thread.
+	//This way the consumer thread can peek ahead to see if the
+	//next buffer slot holds a special character
+	bool lookahead = true;
 
-	//read the file line by line
-	if (in_file) {
+	while (1) {
+		string line;
+		//decrement sem_empty, when sem_empty is zero, sem_wait will wait
+		//until sem_empty is positive
+		sem_wait(&sem_empty);
 
-		//set an one-time use flag to allow producer thread to read 
-		//one buffer slot without posting to sem_fill
-		//this should ensure that comsumer thread will always
-		//be one more slot behind the producer thread.
-		//This way the consumer thread can peek ahead to see if the 
-		//next buffer slot holds a special character
-		bool lookahead = true;	
+		getline(*in_file, line);
+		sem_wait(&sem_crit); //Obtain critical section lock
+			buffer[writePos] = line;
+			writePos = (writePos + 1) % BUF_SIZE;
+		sem_post(&sem_crit); //release critical section lock
+		if (lookahead) lookahead = false;
+		else sem_post(&sem_fill); //increment sem_fill for consumer to read
 
-		while (1) {
-			string line;
-			//decrement sem_empty, when sem_empty is zero, sem_wait will wait
-			//until sem_empty is positive
+		if (in_file->eof()) {	//if the eof is reached, then write the special chars to the buffer
+			cout << "eof detected" << endl;
 			sem_wait(&sem_empty);
-
-			getline(*in_file, line);
 			sem_wait(&sem_crit); //Obtain critical section lock
-				buffer[writePos] = line;
+				buffer[writePos] = "!@#$^&*()_+";
 				writePos = (writePos + 1) % BUF_SIZE;
 			sem_post(&sem_crit); //release critical section lock
-			if (lookahead) lookahead = false;
-			else sem_post(&sem_fill); //increment sem_fill for consumer to read
-
-			if (in_file->eof()) {	//if the eof is reached, then write the special chars to the buffer
-				cout << "eof detected" << endl;
-				sem_wait(&sem_empty);
-				sem_wait(&sem_crit); //Obtain critical section lock
-					buffer[writePos] = "!@#$^&*()_+";
-					writePos = (writePos + 1) % BUF_SIZE;
-				sem_post(&sem_crit); //release critical section lock
-				sem_post(&sem_fill);
-				break;
-			}
-
-			//if at the end of the file, break out of loop
-			//if(in_file->peek() == EOF) break;
+			sem_post(&sem_fill);
+			break;
 		}
-		// cout << endl;
-
-	}
-	else {
-		cout << "Error: input file stream is not opened" << endl;
-		exit(1);
 	}
 	pthread_exit(NULL);
 	return NULL;
@@ -148,6 +138,7 @@ void *writeLine(void *arg) {
 		//wait for semaphore for filled buffer, consumer
 		//will wait if the buffer is empty
 		while (1) {
+
 			sem_wait(&sem_fill);
 			sem_wait(&sem_crit); //Obtain critical section lock
 			if (buffer[readPos] == "!@#$^&*()_+") {

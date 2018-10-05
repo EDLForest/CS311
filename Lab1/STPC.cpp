@@ -23,8 +23,11 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
-    if(argc != 2)
+    if(argc != 2){
+        cout << "Not enough argument" << endl;
         exit(99);
+
+    }
 
 #ifdef WIN32
 	const char inpath[] = "C:\\temps\\coursein\\p1-in.txt";
@@ -37,19 +40,13 @@ int main(int argc, char **argv) {
 		homedir = getpwuid(getuid())->pw_dir;
 	strcpy(inpath, homedir);
 	strcpy(outpath, homedir);
-	strcat(inpath, "/temp/coursein/p1-in.txt");
-	strcat(outpath, "/temp/courseout/p1-out.txt");
+	strcat(inpath, "/temp/fileio/coursein/p1-in.txt");
+	strcat(outpath, "/temp/fileio/courseout/p1-out.txt");
 
 #endif
 
-
-	//printf("Using in path: %s\n", inpath);
-	//printf("Using out path: %s\n", outpath);
-	//printf("Enter 0 to read file char by char.\n");
-	//printf("Enter 1 to read file line by line.\n");
-
-	//int userChoice;
-	//scanf("%d", &userChoice);
+    cout << "inpath: " << inpath << endl;
+    cout << "outpath: " << outpath << endl;
 
 	int userChoice = atoi(argv[1]);
 	if (!userChoice) {
@@ -58,6 +55,7 @@ int main(int argc, char **argv) {
 	else {
 		fcopy_line(inpath, outpath);
 	}
+
 
 	return 0;
 }
@@ -71,7 +69,7 @@ void fcopy_char(const char *inpath, const char *outpath) {
     //read the file char by char
     start_timing();
     start_nanotime();
-    if (infile && outfile){
+    if (infile.is_open() && outfile.is_open()){
         char c;
         while(infile.get(c)){
             outfile << c;
@@ -79,6 +77,7 @@ void fcopy_char(const char *inpath, const char *outpath) {
 
     }
     else{
+        cout << "Infile or outfile is not open" << endl;
         exit(1);
     }
     stop_timing();
@@ -99,13 +98,13 @@ void fcopy_line(const char *inpath, const char *outpath) {
 
     start_nanotime();
     start_timing();
-    if (infile && outfile){
+    if (infile.is_open() && outfile.is_open()){
         for (string line; getline(infile, line); ) {
             outfile << line << endl;
-            //if(infile.peek() == EOF) break;
         }
     }
     else{
+        cout << "infile or outfile is not open" << endl;
         exit(1);
     }
 

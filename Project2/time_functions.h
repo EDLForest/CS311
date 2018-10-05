@@ -26,7 +26,7 @@ int djended;
 struct timeb timestruct;
 time_t wall_time_1, wall_time_2;
 unsigned short cs350_timer__millitm1, cs350_timer__millitm2;
-double cs350_timer__C1, cs350_timer__C2;  // for use by the clock fcn 
+double cs350_timer__C1, cs350_timer__C2;  // for use by the clock fcn
 double cs350_timer__CPU_start, cs350_timer__CPU_diff; // for Linux "times" and wintime
 
 // following interfaces are "exposed" for user access
@@ -161,7 +161,7 @@ int get_nanodiff()
 #include <sys/times.h>
 #include <unistd.h>
 
-char filebase[] = "/root/coursedata/"; // The "coursedata" directory must be in home directory 
+char filebase[] = "/root/coursedata/"; // The "coursedata" directory must be in home directory
 char os_in[] = "/root/coursedata/os-in/"; // for 311, 350, 552
 char os_out[] = "/fileio/os-out/";
 
@@ -196,7 +196,7 @@ double get_CPU_time_diff()
 	//diff = (cs350_timer__CPU_end - cs350_timer__CPU_start);
 	//printf("Linux cputime diff=%10.3f, diff/1k=%10.3f \n",diff, diff/1000);
 	//return diff / 1000;
-	return cs350_timer_CPU_diff; // previously computed in "get_nanodiff"
+	return cs350_timer__CPU_diff; // previously computed in "get_nanodiff"
 }
 #else
 // ------------------- Windows -------------------
