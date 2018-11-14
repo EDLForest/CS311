@@ -113,8 +113,6 @@ void *generator_fn(void* arg) {
 int main() {
 
 	setpath();
-	cout << "There are " << TOTALGEN << " generators\n" << endl;
-
 	ifstream infile(in_path);
 	ofstream outfile(out_path);
 
@@ -174,7 +172,6 @@ int main() {
 	while (GeneratorCount != TOTALGEN) {
 		pthread_cond_wait(&generator_done, &cond_mutex);
 	}
-	cout << "All generator are waiting for generator_start signal now" << endl;
 	pthread_mutex_unlock(&cond_mutex);
 
 	//Print the initial values of farm
@@ -196,9 +193,6 @@ int main() {
 		//For the generators to read, and new values will overwrite
 		//the value that's in the previous_pow
 		swap(current_pow, previous_pow);
-
-		//read in the next target power output
-		cout << "Target power is: " << target << endl;
 
 		//Reset the run status of the threads to false so thread willexecute when signaled
 		for (i = 0; i < ROWCOUNT; i++) {
@@ -231,6 +225,7 @@ int main() {
 			outfile << "\n";
 		}
 		outfile << "**********" << endl;
+		cout << "**********" << endl;
 
 
 		millisleep(TFARM_CYCLE_TIME * 1000);
