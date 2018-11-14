@@ -111,16 +111,16 @@ void *generator_fn(void* arg) {
 		}
 		float avg = (sum + previous_pow[m][n]) / divisor;
 		if (avg < target) {
-			if (previous_pow[m][n] * 1.3 >= max_power[m][n])
+			if (previous_pow[m][n] + (current_pow[m][n] * 0.3) >= max_power[m][n])
 				current_pow[m][n] = max_power[m][n];
 			else
-				current_pow[m][n] = previous_pow[m][n] * 1.3;
+				current_pow[m][n] = previous_pow[m][n] + (current_pow[m][n] * 0.3);
 		}
 		else if (avg > target) {
-			if (previous_pow[m][n] * 0.7 < 0)
+			if (previous_pow[m][n] - (current_pow[m][n] * 0.3) < 0)
 				current_pow[m][n] = 0;
 			else
-				current_pow[m][n] = previous_pow[m][n] * 0.7;
+				current_pow[m][n] = previous_pow[m][n] - (current_pow[m][n] * 0.3);
 		}
 		else {
 			current_pow[m][n] = previous_pow[m][n];
