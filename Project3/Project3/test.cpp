@@ -1,4 +1,4 @@
-#include "pch.h"
+//#include "pch.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -28,15 +28,11 @@ pthread_t generators[ROWCOUNT][COLCOUNT];
 
 pthread_mutex_t cond_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-pthread_mutex_t update_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t inc_gen_ct_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 pthread_cond_t generator_done = PTHREAD_COND_INITIALIZER;
 pthread_cond_t generator_start = PTHREAD_COND_INITIALIZER;
 
 float target;
 int GeneratorCount = 0;
-int GeneratorLeft = 15;
 bool GeneratorNotRunning = true;
 
 //This function will return wether or not a thread has run given its pos
@@ -49,10 +45,6 @@ void *generator_fn(void* arg) {
 	int m = position->m;
 	int n = position->n;
 
-	/*pthread_mutex_lock(&cond_mutex);
-	cout << "Turbine at position (" << m << "," << n << ") has been activated" << endl;
-	pthread_mutex_unlock(&cond_mutex)*/
-
 	while (1) {
 		pthread_mutex_lock(&cond_mutex);
 		GeneratorCount++;
@@ -61,31 +53,14 @@ void *generator_fn(void* arg) {
 		//so the thread will not run again if spurious wakeup happen
 		thread_ran[m][n] = true;
 
-		/*cout << "Generator (" << m << "," << n << ") locked cond_mutex" << endl;
-		cout << GeneratorCount << " generator done now" << endl;
-*/
 		//Signal generator_done to wake up main
 		pthread_cond_signal(&generator_done);
 
-		//wait for main to broadcast generator_start signal indicating a new cycle
-		/*while (GeneratorCount != 0) {
-			cout << "(" << m << "," << n << ") is waiting on generator_start signal" << endl;
-			pthread_cond_wait(&generator_start, &cond_mutex);
-			cout << "(" << m << "," << n << ") is signaled" << endl;
-			cout << "Generator Count : " << GeneratorCount << endl;
-		}
-		pthread_mutex_unlock(&cond_mutex);*/
-
 		do {
-			cout << "(" << m << "," << n << ") is waiting on generator_start signal" << endl;
 			pthread_cond_wait(&generator_start, &cond_mutex);
-			cout << "(" << m << "," << n << ") is signaled" << endl;
-			cout << GeneratorCount << " Generators has finished updating" << endl;
 		} while (ThreadRunAlready(m,n));
 
 		pthread_mutex_unlock(&cond_mutex);
-
-		cout << "(" << m << "," << n << ") is updating its output power" << endl;
 		
 		float sum = 0;
 		float divisor = 1;
@@ -109,6 +84,7 @@ void *generator_fn(void* arg) {
 			divisor++;
 			sum += previous_pow[m][n - 1];
 		}
+
 		float avg = (sum + previous_pow[m][n]) / divisor;
 		if (avg < target) {
 			if (previous_pow[m][n] + (current_pow[m][n] * 0.3) >= max_power[m][n])
@@ -175,6 +151,7 @@ int main() {
 	}
 	else {
 		cout << "File at " << in_path << " is not opened" << endl;
+		exit(1);
 	}
 
 	//Initializing the Positions, threads, and their run status
@@ -195,15 +172,12 @@ int main() {
 	//Only then, proceed
 	pthread_mutex_lock(&cond_mutex);
 	while (GeneratorCount != TOTALGEN) {
-		/*cout << "Waiting for generators to get ready" << endl;*/
 		pthread_cond_wait(&generator_done, &cond_mutex);
-		//cout << "Generator signaled" << endl;
 	}
 	cout << "All generator are waiting for generator_start signal now" << endl;
 	pthread_mutex_unlock(&cond_mutex);
 
 	//Print the initial values of farm
-	//pthread_mutex_lock(&print_mutex);
 	for (i = 0; i < ROWCOUNT; i++) {
 		for (j = 0; j < COLCOUNT; j++) {
 			cout << current_pow[i][j] << "\t";
@@ -214,9 +188,8 @@ int main() {
 	}
 	cout << "**********" << endl;
 	outfile << "**********\n";
-	//pthread_mutex_unlock(&print_mutex);
 
-	while (!infile.eof()) {
+	while (infile >> target) {
 
 		//Swapping the current_pow and the previous_pow
 		//The current_pow's value will be saved in previous_pow
@@ -225,10 +198,7 @@ int main() {
 		swap(current_pow, previous_pow);
 
 		//read in the next target power output
-		infile >> target;
-		//pthread_mutex_lock(&print_mutex);
-		cout << "Target power is: " << target /*<< "\n"*/ << endl;
-		//pthread_mutex_unlock(&print_mutex);
+		cout << "Target power is: " << target << endl;
 
 		//Reset the run status of the threads to false so thread willexecute when signaled
 		for (i = 0; i < ROWCOUNT; i++) {
@@ -240,20 +210,16 @@ int main() {
 		//Lock the cond_mutex to modify the conditional variable
 		//Then notifies all the threads that are waiting to work
 		//Then wait for the threads to complete work
-		//cout << "Trying to lock cond_mutex..." << endl;
 		pthread_mutex_lock(&cond_mutex);
 		GeneratorCount = 0;
 		pthread_cond_broadcast(&generator_start);
 		while (GeneratorCount != TOTALGEN) {
-			cout << "Waiting for all generators to get ready" << endl;
 			pthread_cond_wait(&generator_done, &cond_mutex);
-			cout << "Main woked up" << endl;
 		}
 		pthread_mutex_unlock(&cond_mutex);
 
 		//After the generators has completed all updates
 		//The main will wake up and print the updated current_pow array
-		//pthread_mutex_lock(&print_mutex);
 		outfile << "Target power output is: " << target << endl;
 		int i, j;
 		for (i = 0; i < ROWCOUNT; i++) {
@@ -265,7 +231,6 @@ int main() {
 			outfile << "\n";
 		}
 		outfile << "**********" << endl;
-		//pthread_mutex_unlock(&print_mutex);
 
 
 		millisleep(TFARM_CYCLE_TIME * 1000);
