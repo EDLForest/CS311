@@ -30,8 +30,8 @@ int main(int argc, char **argv) {
     }
 
 #ifdef WIN32
-	const char inpath[] = "C:\\temps\\coursein\\p1-in.txt";
-	const char outpath[] = "C:\\temps\\courseout\\p1-out.txt";
+	const char inpath[] = "C:\\temps\\coursein\\p2-in.txt";
+	const char outpath[] = "C:\\temps\\courseout\\p2-out.txt";
 #else
 	char inpath[200], outpath[200];
 	const char *homedir;
