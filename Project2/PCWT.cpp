@@ -15,8 +15,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
-char in_path[200];
-char out_path[200];
 #endif
 
 using namespace std;
