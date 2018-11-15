@@ -17,14 +17,14 @@ void setpath();
 void setpath()
 {
 #if defined _WIN32 || defined WIN32 //Windows
-       char in_path[]="C:\\temp\\coursein\\p3-in.txt";
-       char out_path[]="C:\\temp\\courseout\\p3-out.txt";
+       strcpy(in_path,"C:\\temps\\coursein\\p3-in.txt");
+       strcpy(out_path,"C:\\temps\\courseout\\p3-out.txt");
 #else //Linux
        // For Linux, the "home" directory actually contains the current userid
        // so we have to get that name from the system and put it in front of the path.
        // Many Linux shells will only expand the "~" if it is used from the command line
-    //    char in_path[200];
-    //    char out_path[]="/fileio/courseout/p3-out.txt";
+        //char in_path[200];
+        //char out_path[200];
        // outpath is NOT in your home directory!!!
              const char *homedir;
              homedir = getenv("HOME");
