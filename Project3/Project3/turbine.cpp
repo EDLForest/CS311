@@ -9,6 +9,7 @@
 #include "time_functions.h"
 
 #include "setpath_defs.h"
+#include "turbine_setpath_fn.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -237,4 +238,3 @@ int main() {
 	}
 }
 
-#include "turbine_setpath_fn.h"

@@ -10,6 +10,6 @@ char in_path[200];
 char out_path[200];
 void setpath();
 
-// These 2 lines belong BEFORE ¡°main¡±, so the names are global
+// These 2 lines belong BEFORE ï¿½ï¿½mainï¿½ï¿½, so the names are global
 FILE* infile;
 FILE* outfile;
