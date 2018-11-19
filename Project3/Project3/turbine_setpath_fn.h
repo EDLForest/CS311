@@ -5,6 +5,7 @@
 #include <pwd.h>
 #endif
 
+#include <string.h> 
 // This include file must be BEFORE “main”, so the names are global
        // FILE* infile;
        // FILE* outfile;
